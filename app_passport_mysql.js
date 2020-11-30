@@ -1,46 +1,5 @@
-var express = require('express');
-var session = require('express-session');
-var MySQLStore = require('express-mysql-session')(session);
-var bodyParser = require('body-parser');
-var bkfd2Password = require("pbkdf2-password");
-var passport = require('passport');
-var LocalStrategy = require('passport-local').Strategy;
-var FacebookStrategy = require('passport-facebook').Strategy;
-var hasher = bkfd2Password();
-var mysql = require('mysql');
-var conn = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'o2'
-});
-conn.connect();
-var app = express();
-app.set('views', './views/mysql');
-app.set('view engine', 'jade');
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(session({
-    secret: '1234DSFs@adf1234!@#$asd',
-    resave: false,
-    saveUninitialized: true,
-    store: new MySQLStore({
-        host:'localhost',
-        port:3306,
-        user:'root',
-        password:'',
-        database:'o2'
-    })
-}));
-app.use(passport.initialize());
-app.use(passport.session());
-app.get('/count', function(req,res){
-    if(req.session.count){
-        req.session.count++;
-    }else {
-        req.session.count = 1;
-    }
-    res.send('count: '+req.session.count);
-});
+var app =require('./config/mysql/express')();
+var passport = require('./config/mysql/passport')(app);
 
 app.get('/welcome', function(req,res){
     if(req.user && req.user.displayName) {
@@ -60,76 +19,7 @@ app.get('/welcome', function(req,res){
         `)
     }
 });
-passport.serializeUser(function(user, done) {
-    console.log('serializeUser', user);
-    done(null, user.authId);
-});
-passport.deserializeUser(function(id, done) {
-    console.log('deserializeUser', id);
-    var sql = 'SELECT * FROM users WHERE authId=?';
-    conn.query(sql, [id], function(err, results){
-        if(err){
-            console.log(err);
-            done('There is no user');
-        } else {
-            done(null, results[0]);
-        }
-    });
-});
-passport.use(new LocalStrategy(
-    function(username, password, done){
-        var uname = username;
-        var pwd = password;
-        var sql = 'SELECT * FROM users WHERE authId=?';
-        conn.query(sql, ['local:'+uname], function(err, results){
-            if(err){
-                return done('There is no user.');
-            }
-            var user = results[0];
-            return hasher({password:pwd, salt:user.salt}, function(err, pass, salt, hash){
-                if(hash === user.password){
-                    console.log('LocalStrategy', user);
-                    done(null, user);
-                } else {
-                    done(null,false);
-                }
-            });
-        });
-    }
-));
-passport.use(new FacebookStrategy({
-    clientID: '',
-    clientSecret: '',
-    callbackURL: "/auth/facebook/callback",
-    profileFields: ['id', 'email', 'gender','link','locale','name',
-    'timezone','updated_time','verified','displayName']
-  },
-  function(accessToken, refreshToken, profile, done) {
-    console.log(profile);
-    var authId = 'facebook:' + profile.id;
-    var sql = 'SELECT * FROM users WHERE authId=?';
-    conn.query(sql, [authId], function(err, results){
-        if(results.length>0){
-            done(null, results[0]);
-        } else {
-            var newuser = {
-                'authId':authId,
-                'displayName':profile.displayName,
-                'email':profile.emails[0].value
-            };
-            var sql = 'INSERT INTO users SET ?'
-            conn.query(sql, newuser, function(err, results){
-                if(err){
-                    console.log(err);
-                    done('Error');
-                } else {
-                    done(null, newuser);
-                }
-            })
-        }
-    });
-  }
-));
+
 var auth = require('./routes/mysql/auth')(passport);
 app.use('/auth/', auth);
 
