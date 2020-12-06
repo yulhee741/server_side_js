@@ -2,7 +2,10 @@ var express = require('express');
 var session = require('express-session');
 var MySQLStore = require('express-mysql-session')(session);
 var bodyParser = require('body-parser');
-var sha256 = require('sha256');
+var bkfd2Password = require("pbkdf2-password");
+var hasher = bkfd2Password();
+
+
 var app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(session({
@@ -45,30 +48,38 @@ app.get('/welcome', function(req,res){
     }
 });
 app.post('/auth/login', function(req,res){
-
-    var user = [{
-      username: 'yulhee',
-      password: '82f7f7f41f4177fef6e9a00f5baff24a602828e442fad353a827c798f4f82e18',
-      salt: '!@#!@aaa',
-      displayName:'Yulhee'
-    },
-    {
-      username: 'yulhee2',
-      password: '5f5fc966ac85eb0cf7e85a99e6d94a81eaeb6493916ca1c9f1ce28c7d633901f',
-      salt: '!%#$@#bbb',
-      displayName:'Yulhee2' 
-    }];
     var uname = req.body.username;
     var pwd = req.body.password;
-    if(uname === user.username && sha256(pwd+user.salt) === user.password){
-        req.session.displayName = user.displayName;
-        req.session.save(function(){
-            res.redirect('/welcome');
-        })    
-    }else {
-        res.send('Who are you? <a href="/auth/login">login</a>');
+    for(var i=0; i<users.length; i++){
+        var user = users[i];
+        if(uname === user.username) {
+            return hasher({password:pwd, salt:user.salt}, function(err, pass, salt, hash){
+                if(hash === user.password){
+                    req.session.displayName = user.displayName;
+                    req.session.save(function(){
+                        res.redirect('/welcome');
+                    })
+                } else {
+                    res.send('Who are you?1 <a href="/auth/login">login</a>');
+                }
+            });
+        }
     }
+    // if(uname === user.username && hasher(pwd,user.salt) === user.password){
+    //     req.session.displayName = user.displayName;
+    //     req.session.save(function(){
+    //         res.redirect('/welcome');
+    //     })    
+    // }else {
+        // res.send('Who are you? <a href="/auth/login">login</a>');
+    
 });
+var users = [{
+    username: 'yulhee',
+    password: 'O83Eq1cNqWAwgmjXt3JFYbjdPd7JJzlsdcHxEIvuZE8A3y4JtjT0tQC4nPeKO3GyCvEty+QR+B3BOmn+YuP/OJQujayExwMyjQWuRA7hYc9njwQSzfZEW7Q+0simCw+156AK1Ysw7C3ASxc8981Fi5Rr2CQUAJoZ3ZZ62T6tLxE=',
+    salt: 'lS49d56KFVPB5MJZtg3qSqE8uj9DJMaDiHxhBcm1OWTGJC5kPJoHgPJjozBXfNkvlSAIF3bWJmDjlV3yvcrVyw==',
+    displayName:'Yulhee'
+  }];
 app.get('/auth/login', function(req,res){
     var output = `
     <h1>Login</h1>
