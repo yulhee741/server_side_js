@@ -16,7 +16,7 @@ app.use(session({
         host:'localhost',
         port:3306,
         user:'root',
-        password:'!khc532412',
+        password:'',
         database:'o2'
     })
 }));
@@ -80,6 +80,41 @@ var users = [{
     salt: 'lS49d56KFVPB5MJZtg3qSqE8uj9DJMaDiHxhBcm1OWTGJC5kPJoHgPJjozBXfNkvlSAIF3bWJmDjlV3yvcrVyw==',
     displayName:'Yulhee'
   }];
+app.post('/auth/register',function(req, res){
+    hasher({password:req.body.password}, function(err, pass, salt, hash){
+        var user = {
+            username:req.body.username,
+            password:hash,
+            salt:salt,
+            displayName:req.body.displayName
+        };
+        users.push(user);
+        req.session.displayName = req.body.displayName;
+        req.session.save(function(){
+            res.redirect('/welcome');
+        });
+    });
+});
+app.get('/auth/register', function(req,res){
+    var output = `
+    <h1>Login</h1>
+    <form action="/auth/register" method="post">
+    <p>
+    <input type="text" name="username" placeholder="username">
+    </p>
+    <p>
+    <input type="password" name="password" placeholder="password">
+    </p>
+    <p>
+    <input type="text" name="displayName" placeholder="displayName">
+    </p>
+    <p>
+    <input type="submit">
+    </p>
+    </form>
+    `;
+    res.send(output);
+});
 app.get('/auth/login', function(req,res){
     var output = `
     <h1>Login</h1>
