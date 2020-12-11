@@ -110,19 +110,27 @@ passport.use(new FacebookStrategy({
   function(accessToken, refreshToken, profile, done) {
     console.log(profile);
     var authId = 'facebook:' + profile.id;
-    for (var i=0; i<users.length; i++){
-        var user = users[i];
-        if(user.authId === authId){
-            return done(null,user);
+    var sql = 'SELECT * FROM users WHERE authId=?';
+    conn.query(sql, [authId], function(err, results){
+        if(results.length>0){
+            done(null, results[0]);
+        } else {
+            var newuser = {
+                'authId':authId,
+                'displayName':profile.displayName,
+                'email':profile.emails[0].value
+            };
+            var sql = 'INSERT INTO users SET ?'
+            conn.query(sql, newuser, function(err, results){
+                if(err){
+                    console.log(err);
+                    done('Error');
+                } else {
+                    done(null, newuser);
+                }
+            })
         }
-    }
-    var newuser = {
-        'authId':authId,
-        'displayName':profile.displayName,
-        'email':profile.emails[0].value
-    };
-    users.push(newuser);
-    done(null, newuser);
+    });
   }
 ));
 app.post(
@@ -152,6 +160,7 @@ app.get(
         failureRedirect: '/auth/login' 
     })
 );
+
 app.post('/auth/register',function(req, res){
     hasher({password:req.body.password}, function(err, pass, salt, hash){
         var user = {
@@ -172,6 +181,7 @@ app.post('/auth/register',function(req, res){
                     res.redirect('/welcome');
                 });  
             });
+
             }
         });
 
