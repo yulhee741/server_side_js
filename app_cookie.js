@@ -44,7 +44,8 @@ app.get('/cart', function(req, res){
     res.send(`
     <h1>Cart</h1>
     <ul>${output}</ul>
-    <a href="/products">Products List</a>`);
+    <a href="/products">Products List</a>
+    `);
 });
 
 app.get('/count', function(req, res){
