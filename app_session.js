@@ -17,6 +17,10 @@ app.get('/count', function(req,res){
     }
     res.send('count: '+req.session.count);
 });
+app.get('/auth/logout', function(req, res){
+    delete req.session.displayName;
+    res.redirect('/welcome');
+});
 app.get('/welcome', function(req,res){
     if(req.session.displayName) {
         res.send(`
