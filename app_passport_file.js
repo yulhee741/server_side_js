@@ -18,7 +18,7 @@ app.use(session({
         host:'localhost',
         port:3306,
         user:'root',
-        password:'!khc532412',
+        password:'',
         database:'o2'
     })
 }));
@@ -51,6 +51,19 @@ app.get('/welcome', function(req,res){
         `)
     }
 });
+passport.serializeUser(function(user, done) {
+    console.log('serializeUser', user);
+    done(null, user.username)
+});
+passport.deserializeUser(function(id, done) {
+    console.log('deserializeUser', id);
+    for(var i=0; i<users.length; i++){
+        var user = users[i];
+        if(user.username === id){
+            done(null, user);
+        }
+    }
+});
 passport.use(new LocalStrategy(
     function(username, password, done){
         var uname = username;
@@ -60,6 +73,7 @@ passport.use(new LocalStrategy(
             if(uname === user.username) {
                 return hasher({password:pwd, salt:user.salt}, function(err, pass, salt, hash){
                     if(hash === user.password){
+                        console.log('LocalStrategy', user);
                         done(null, user);
                     } else {
                         done(null,false);
@@ -82,33 +96,6 @@ app.post(
     )
 );
 
-// function(req,res){
-//     var uname = req.body.username;
-//     var pwd = req.body.password;
-//     for(var i=0; i<users.length; i++){
-//         var user = users[i];
-//         if(uname === user.username) {
-//             return hasher({password:pwd, salt:user.salt}, function(err, pass, salt, hash){
-//                 if(hash === user.password){
-//                     req.session.displayName = user.displayName;
-//                     req.session.save(function(){
-//                         res.redirect('/welcome');
-//                     })
-//                 } else {
-//                     res.send('Who are you?1 <a href="/auth/login">login</a>');
-//                 }
-//             });
-//         }
-//     }
-    // if(uname === user.username && hasher(pwd,user.salt) === user.password){
-    //     req.session.displayName = user.displayName;
-    //     req.session.save(function(){
-    //         res.redirect('/welcome');
-    //     })    
-    // }else {
-        // res.send('Who are you? <a href="/auth/login">login</a>');
-    
-});
 var users = [{
     username: 'yulhee',
     password: 'O83Eq1cNqWAwgmjXt3JFYbjdPd7JJzlsdcHxEIvuZE8A3y4JtjT0tQC4nPeKO3GyCvEty+QR+B3BOmn+YuP/OJQujayExwMyjQWuRA7hYc9njwQSzfZEW7Q+0simCw+156AK1Ysw7C3ASxc8981Fi5Rr2CQUAJoZ3ZZ62T6tLxE=',
